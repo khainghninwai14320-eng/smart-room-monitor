@@ -15,7 +15,8 @@ export default function DashboardPage() {
   const [data, setData] = useState<SensorData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const API_BASE_URL = 'http://172.20.10.6:8000/api/latest';
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://172.20.10.6:8000/api/latest';
 
   useEffect(() => {
     const fetchData = () => {

@@ -2,83 +2,49 @@
 
 import { useEffect, useState } from 'react';
 
-interface DeviceStatus {
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://172.20.10.6:8000/api/latest';
 
-  label: string;
-
-  val: string;
-
-  ok: boolean;
-
-}
-
-export default function DeviceStatusPage() {
-
-  const [statuses, setStatuses] = useState<DeviceStatus[]>([]);
-
-  const [loading, setLoading] = useState<boolean>(true);
-
-  // Replace this URL with your backend teammate's actual IP address
-
-  const BACKEND_STATUS_URL = 'http://192.168.1.100:8000/api/device-status';
+export default function DashboardPage() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
 
-    fetch(BACKEND_STATUS_URL)
+    const fetchData = async () => {
+      try {
+        const res = await fetch(API_BASE_URL);
+        if (!res.ok) {
+          throw new Error(`Request failed with status ${res.status}`);
+        }
+        const json = await res.json();
 
-      .then((res) => res.json())
+        if (!cancelled) {
+          setData(json);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Failed to fetch dashboard data:', err);
+          setError('Unable to load data from the API.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
 
-      .then((data) => {
+    fetchData();
 
-        setStatuses(data);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-        setLoading(false);
+  if (loading) return <div className="text-sm text-slate-600">Loading...</div>;
+  if (error) return <div className="text-sm text-red-600">{error}</div>;
 
-      })
-
-      .catch((err) => {
-
-        console.error(err);
-
-        setLoading(false);
-
-      });
-
-  }, [BACKEND_STATUS_URL]);
-
-  if (loading) {
-
-    return <div className="text-sm text-slate-500 animate-pulse">Checking hardware diagnostic status...</div>;
-
-  }
-
-  return (
-<div className="space-y-6 max-w-2xl">
-<h1 className="text-2xl font-bold text-slate-800">Device System Status</h1>
-<div className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y">
-
-        {statuses.length === 0 ? (
-<div className="p-4 text-center text-slate-400 text-sm">No diagnostic data retrieved from Raspberry Pi.</div>
-
-        ) : (
-
-          statuses.map((s, i) => (
-<div key={i} className="p-4 flex justify-between items-center">
-<span className="text-sm font-medium text-slate-600">| {s.label}</span>
-<div className="flex items-center gap-2">
-<span className="text-sm text-slate-800 font-semibold">{s.val}</span>
-
-                {s.ok && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>}
-</div>
-</div>
-
-          ))
-
-        )}
-</div>
-</div>
-
-  );
-
+  // ...existing code...
 }
- 

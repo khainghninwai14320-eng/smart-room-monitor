@@ -10,83 +10,83 @@ interface AlertLog {
   msg: string;
 }
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://172.20.10.6:8000/api/latest';
+
 export default function AlertsPage() {
   const [alertsLogs, setAlertsLogs] = useState<AlertLog[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const API_BASE_URL = 'http://172.20.10.6:8000/api/latest';
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchAlertsLogs = async () => {
       try {
         const res = await fetch(API_BASE_URL);
+        if (!res.ok) {
+          throw new Error(`Request failed with status ${res.status}`);
+        }
         const data = await res.json();
-        setAlertsLogs(data);
-      } catch (error) {
-        console.error('Error fetching alerts logs:', error);
+
+        if (!cancelled) {
+          setAlertsLogs(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Error fetching alerts logs:', err);
+          setError('Unable to load alerts from the API.');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchAlertsLogs();
-  }, [API_BASE_URL]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (loading) {
     return <div className="text-sm text-slate-600">Loading alerts logs...</div>;
   }
 
+  if (error) {
+    return <div className="text-sm text-red-600">{error}</div>;
+  }
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800">Alert Logs</h1>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase">
-            <tr>
-              <th className="p-4">Time</th>
-              <th className="p-4">Alert</th>
-              <th className="p-4">Level</th>
-              <th className="p-4">Message</th>
-            </tr>
-          </thead>
-          <tbody className="text-sm divide-y divide-slate-100">
-            {alertsLogs.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="p-4 text-center text-slate-400">
-                  No systematic incidents logged.
-                </td>
-              </tr>
-            ) : (
-              alertsLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50">
-                  <td className="p-4 text-slate-500">{log.time}</td>
-                  <td className="p-4 font-semibold text-slate-700">{log.type}</td>
-                  <td className="p-4">
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs font-bold ${
-                        log.level === 'High'
-                          ? 'bg-rose-100 text-rose-700'
-                          : log.level === 'Medium'
-                            ? 'bg-amber-100 text-amber-700'
-                            : 'bg-emerald-100 text-emerald-700'
-                      }`}
-                    >
-                      {log.level}
-                    </span>
-                  </td>
-                  <td className="p-4 text-slate-600">{log.msg}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <h1 className="text-2xl font-bold text-slate-800">Alerts</h1>
+      <div className="grid gap-4">
+        {alertsLogs.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
+            No alerts available.
+          </div>
+        ) : (
+          alertsLogs.map((alert) => (
+            <div
+              key={alert.id}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">{alert.type}</h2>
+                  <p className="text-sm text-slate-500">{alert.time}</p>
+                </div>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">
+                  {alert.level}
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-slate-700">{alert.msg}</p>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
 }
- 
-
-        
-
-
-        
