@@ -14,10 +14,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="text-slate-800 antialiased">
-        <div className="flex min-h-screen">
+      <body className="text-slate-800 antialiased overflow-x-hidden">
+        <div className="min-h-screen">
           <Sidebar />
-          <main className="flex-1 ml-72 p-8 overflow-y-auto">
+
+          <main
+            className="
+              min-h-screen
+              pt-24 px-4 pb-6
+              md:ml-72 md:pt-8 md:px-8 md:pb-8
+              overflow-x-hidden
+            "
+          >
             {children}
           </main>
         </div>

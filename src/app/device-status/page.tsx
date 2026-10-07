@@ -11,7 +11,8 @@ interface DeviceStatusData {
   lastDataReceived: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://192.168.0.47:8000';
 
 export default function DeviceStatusPage() {
   const [data, setData] = useState<DeviceStatusData | null>(null);
@@ -22,7 +23,7 @@ export default function DeviceStatusPage() {
     const fetchDeviceStatus = async () => {
       try {
         if (!API_BASE_URL) {
-          throw new Error('API URL is not configured');
+          throw new Error('APIのURLが設定されていません。');
         }
 
         const response = await fetch(
@@ -30,7 +31,7 @@ export default function DeviceStatusPage() {
         );
 
         if (!response.ok) {
-          throw new Error('Failed to fetch device status');
+          throw new Error('デバイス状態の取得に失敗しました。');
         }
 
         const result: DeviceStatusData = await response.json();
@@ -39,7 +40,10 @@ export default function DeviceStatusPage() {
         setError(null);
       } catch (err) {
         console.error(err);
-        setError('Cannot get device status from Raspberry Pi.');
+
+        setError(
+          'Raspberry Piからデバイス状態を取得できません。'
+        );
       } finally {
         setLoading(false);
       }
@@ -55,7 +59,7 @@ export default function DeviceStatusPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64 text-sm text-slate-500 animate-pulse">
-        Checking Raspberry Pi status...
+        Raspberry Pi の状態を確認しています...
       </div>
     );
   }
@@ -64,7 +68,7 @@ export default function DeviceStatusPage() {
     return (
       <div className="p-6 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl">
         <h3 className="font-bold">
-          Device Status Error
+          デバイス状態取得エラー
         </h3>
 
         <p className="text-sm mt-1">
@@ -77,10 +81,25 @@ export default function DeviceStatusPage() {
   if (!data) {
     return (
       <div className="p-6 bg-white border border-slate-200 rounded-2xl">
-        No device status data available.
+        デバイス状態のデータがありません。
       </div>
     );
   }
+
+  const translateStatus = (value: string) => {
+    switch (value) {
+      case 'Online':
+        return 'オンライン';
+      case 'Offline':
+        return 'オフライン';
+      case 'Connected':
+        return '接続済み';
+      case 'Disconnected':
+        return '未接続';
+      default:
+        return value;
+    }
+  };
 
   const statusItems = [
     {
@@ -89,42 +108,42 @@ export default function DeviceStatusPage() {
       ok: data.status === 'Online',
     },
     {
-      label: 'System Status',
-      value: data.status,
+      label: 'システム状態',
+      value: translateStatus(data.status),
       ok: data.status === 'Online',
     },
     {
       label: 'Wi-Fi',
-      value: data.wifi,
+      value: translateStatus(data.wifi),
       ok: data.wifi === 'Connected',
     },
     {
-      label: 'Temperature Sensor',
-      value: data.temperatureSensor,
+      label: '温度センサー',
+      value: translateStatus(data.temperatureSensor),
       ok: data.temperatureSensor === 'Connected',
     },
     {
-      label: 'Humidity Sensor',
-      value: data.humiditySensor,
+      label: '湿度センサー',
+      value: translateStatus(data.humiditySensor),
       ok: data.humiditySensor === 'Connected',
     },
   ];
 
   return (
     <div className="space-y-6">
-
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-800">
-          Device Status
+          デバイス状態
         </h1>
 
         <p className="text-sm text-slate-500 mt-1">
-          Raspberry Pi and sensor connection status
+          Raspberry Pi と各センサーの接続状態
         </p>
       </div>
 
+      {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-
         {statusItems.map((item) => (
           <div
             key={item.label}
@@ -155,23 +174,22 @@ export default function DeviceStatusPage() {
                   : 'bg-rose-100 text-rose-700'
               }`}
             >
-              {item.ok ? 'OK' : 'Problem'}
+              {item.ok ? '正常' : '異常'}
             </span>
           </div>
         ))}
-
       </div>
 
+      {/* Last Data Received */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <p className="text-sm text-slate-500">
-          Last Data Received
+          最終データ受信時刻
         </p>
 
         <p className="font-semibold text-slate-800 mt-2">
           {data.lastDataReceived}
         </p>
       </div>
-
     </div>
   );
 }
