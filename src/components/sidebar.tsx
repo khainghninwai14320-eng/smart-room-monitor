@@ -1,8 +1,13 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  'http://192.168.0.47:8000';
 
 const menuItems = [
   { name: 'ダッシュボード', path: '/' },
@@ -15,8 +20,48 @@ const menuItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
 
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isPiOnline, setIsPiOnline] = useState(false);
+
+  // Raspberry Pi Online / Offline Check
+  useEffect(() => {
+    let active = true;
+
+    const checkPiStatus = async () => {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/device-status`,
+          { cache: 'no-store' }
+        );
+
+        if (!response.ok) {
+          throw new Error('Connection failed');
+        }
+
+        const data = await response.json();
+
+        if (active) {
+          setIsPiOnline(data.status === 'Online');
+        }
+      } catch (error) {
+        if (active) {
+          setIsPiOnline(false);
+        }
+      }
+    };
+
+    checkPiStatus();
+
+    const interval = setInterval(checkPiStatus, 5000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Close Mobile Menu When Page Changes
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
@@ -26,13 +71,13 @@ export default function Sidebar() {
       <div>
         <div className="flex items-center gap-3 px-2 mb-10">
           <div className="w-16 h-16 flex items-center justify-center">
-            <img src="/smart-room-logo.png"
-                 alt="Smart Room Monitor Logo"
-                 width={60}
-                 height={60}
-                 className="w-15 h-15 object-contain"
-
-              />
+            <img
+              src="/smart-room-logo.png"
+              alt="Smart Room Monitor Logo"
+              width={60}
+              height={60}
+              className="w-15 h-15 object-contain"
+            />
           </div>
 
           <div>
@@ -71,6 +116,7 @@ export default function Sidebar() {
         </nav>
       </div>
 
+      {/* Raspberry Pi Connection Status */}
       <div className="bg-white/80 border border-white rounded-2xl p-4 shadow-sm">
         <p className="text-[14px] text-slate-600">
           接続中のデバイス
@@ -81,8 +127,25 @@ export default function Sidebar() {
             Raspberry Pi 3
           </p>
 
-          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
+          <span
+            title={isPiOnline ? 'Online' : 'Offline'}
+            className={`w-2.5 h-2.5 rounded-full ${
+              isPiOnline
+                ? 'bg-emerald-500'
+                : 'bg-rose-500'
+            }`}
+          />
         </div>
+
+        <p
+          className={`text-xs mt-2 ${
+            isPiOnline
+              ? 'text-emerald-600'
+              : 'text-rose-600'
+          }`}
+        >
+          {isPiOnline ? 'オンライン' : 'オフライン'}
+        </p>
       </div>
     </>
   );
@@ -125,18 +188,19 @@ export default function Sidebar() {
         "
       >
         <div className="flex items-center gap-3">
-            <img
-              src="/smart-room-logo.png"
-              alt="Smart Room Monitor Logo"
-              width={48}
-              height={48}
-              className="w-12 h-12 object-contain"
-            />
+          <img
+            src="/smart-room-logo.png"
+            alt="Smart Room Monitor Logo"
+            width={48}
+            height={48}
+            className="w-12 h-12 object-contain"
+          />
 
           <div>
             <p className="text-sm font-bold text-slate-900 leading-tight">
               Smart Room
             </p>
+
             <p className="text-xs text-slate-500">
               Monitor
             </p>
@@ -204,6 +268,7 @@ export default function Sidebar() {
             shadow-sm
             text-slate-600
           "
+          aria-label="Close menu"
         >
           ×
         </button>
